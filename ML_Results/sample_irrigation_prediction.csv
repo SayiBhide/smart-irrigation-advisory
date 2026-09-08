@@ -1,0 +1,2 @@
+Soil_pH,Soil_Moisture,Organic_Carbon,Electrical_Conductivity,Temperature_C,Humidity,Rainfall_mm,Sunlight_Hours,Wind_Speed_kmh,Field_Area_hectare,Previous_Irrigation_mm,Soil_Type,Crop_Type,Crop_Growth_Stage,Season,Irrigation_Type,Water_Source,Mulching_Used,Region,Predicted_Irrigation_Need,Advisory
+7.35,60.55,1.28,1.46,37.85,54.38,1610.41,5.46,10.76,12.65,95.46,Loamy,Wheat,Harvest,Kharif,Sprinkler,Reservoir,Yes,Central,Low,Low irrigation requirement. Immediate irrigation may not be necessary. Continue monitoring soil moisture and weather conditions.

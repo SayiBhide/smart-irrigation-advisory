@@ -1,0 +1,5 @@
+,Mean_F1,Std_F1
+Random Forest,0.9701,0.0018
+Decision Tree,0.9954,0.0022
+XGBoost,0.9965,0.0011
+SVM,0.876,0.0053
