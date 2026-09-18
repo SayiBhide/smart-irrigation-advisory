@@ -25,10 +25,10 @@ from irrigation_predictor import (
 # ============================================================
 
 st.set_page_config(
-    page_title="Smart Irrigation Advisory System",
+    page_title="Smart Irrigation Advisory",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 
@@ -187,6 +187,42 @@ st.markdown(
 [data-testid="stSidebar"] [data-baseweb="select"] * {
     color: #1b4332 !important;
 }
+/* ============================================================
+   MOBILE / FARMER-FRIENDLY DESIGN
+   ============================================================ */
+
+.block-container {
+    padding-left: 5%;
+    padding-right: 5%;
+    padding-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+
+    .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 1rem;
+    }
+
+    h1 {
+        font-size: 1.8rem !important;
+    }
+
+    h2 {
+        font-size: 1.4rem !important;
+    }
+
+    h3 {
+        font-size: 1.15rem !important;
+    }
+
+    .stButton button {
+        width: 100%;
+        min-height: 3rem;
+        font-size: 1rem;
+    }
+}
 </style>
     
     """,
@@ -221,7 +257,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
+st.info(
+    "🌾 Select your location, crop, growth stage and field area, then get your AI-based irrigation advisory."
+)
 
 # ============================================================
 # SIDEBAR
@@ -231,15 +269,13 @@ st.sidebar.markdown(
     "## 🌦️ Weather Configuration"
 )
 
-st.sidebar.markdown(
-    "Enter your OpenWeather API key below."
-)
+try:
+    api_key = st.secrets["OPENWEATHER_API_KEY"]
+except Exception:
+    api_key = ""
 
-api_key = st.sidebar.text_input(
-    "🔑 OpenWeather API Key",
-    type="password",
-    placeholder="Enter API key"
-)
+if not api_key:
+    st.sidebar.error("Weather service is not configured.")
 
 st.sidebar.markdown("---")
 
@@ -311,13 +347,12 @@ def get_numeric_default(column, fallback):
 
     return fallback
 
-
 # ============================================================
-# AGRICULTURAL INPUTS
+# FARMER-FRIENDLY AGRICULTURAL INPUTS
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">🌾 Agricultural Information</div>',
+    '<div class="section-title">🌾 Farm Information</div>',
     unsafe_allow_html=True
 )
 
@@ -330,9 +365,19 @@ with col1:
         "🌱 Crop Type",
         get_categories(
             "Crop_Type",
-            ["Sugarcane"]
+            [
+                "Rice",
+                "Maize",
+                "Sugarcane",
+                "Potato",
+                "Wheat",
+                "Cotton"
+            ]
         )
     )
+
+
+with col2:
 
     crop_growth_stage = st.selectbox(
         "🌿 Crop Growth Stage",
@@ -347,68 +392,8 @@ with col1:
         )
     )
 
-    soil_type = st.selectbox(
-        "🪨 Soil Type",
-        get_categories(
-            "Soil_Type",
-            [
-                "Loamy",
-                "Clay",
-                "Sandy",
-                "Silty"
-            ]
-        )
-    )
-
-    region = st.selectbox(
-        "🗺️ Region",
-        get_categories(
-            "Region",
-            ["Central", "East", "West", "North"]
-        )
-    )
-
-
-with col2:
-
-    soil_ph = st.number_input(
-        "🧪 Soil pH",
-        value=get_numeric_default("Soil_pH", 6.5),
-        step=0.1
-    )
-
-    soil_moisture = st.number_input(
-        "💧 Soil Moisture",
-        value=get_numeric_default("Soil_Moisture", 50.0),
-        step=1.0
-    )
-
-    organic_carbon = st.number_input(
-        "🌱 Organic Carbon",
-        value=get_numeric_default("Organic_Carbon", 1.5),
-        step=0.1
-    )
-
-    electrical_conductivity = st.number_input(
-        "⚡ Electrical Conductivity",
-        value=get_numeric_default(
-            "Electrical_Conductivity",
-            1.0
-        ),
-        step=0.1
-    )
-
 
 with col3:
-
-    sunlight_hours = st.number_input(
-        "☀️ Sunlight Hours",
-        value=get_numeric_default(
-            "Sunlight_Hours",
-            7.0
-        ),
-        step=0.5
-    )
 
     field_area = st.number_input(
         "📐 Field Area (hectare)",
@@ -420,89 +405,90 @@ with col3:
         step=0.1
     )
 
-    previous_irrigation = st.number_input(
-        "💦 Previous Irrigation (mm)",
-        value=get_numeric_default(
-            "Previous_Irrigation_mm",
-            20.0
-        ),
-        min_value=0.0,
-        step=1.0
-    )
-
 
 # ============================================================
-# OTHER AGRICULTURAL PARAMETERS
+# BACKEND AGRICULTURAL PARAMETERS
 # ============================================================
+# These values are kept internally because the trained
+# XGBoost model requires these features as inputs.
+# They are not entered manually by the farmer in the
+# current farmer-friendly prototype.
 
-st.markdown(
-    '<div class="section-title">🚜 Farm Management Information</div>',
-    unsafe_allow_html=True
+soil_type = get_categories(
+    "Soil_Type",
+    ["Loamy", "Clay", "Sandy", "Silty"]
+)[0]
+
+region = get_categories(
+    "Region",
+    ["Central", "East", "West", "North"]
+)[0]
+
+season = get_categories(
+    "Season",
+    [
+        "Kharif",
+        "Rabi",
+        "Summer",
+        "Winter",
+        "Monsoon"
+    ]
+)[0]
+
+irrigation_type = get_categories(
+    "Irrigation_Type",
+    [
+        "Drip",
+        "Sprinkler",
+        "Flood",
+        "Rainfed"
+    ]
+)[0]
+
+water_source = get_categories(
+    "Water_Source",
+    [
+        "Canal",
+        "Groundwater",
+        "Rainwater",
+        "Reservoir"
+    ]
+)[0]
+
+mulching = get_categories(
+    "Mulching_Used",
+    ["Yes", "No"]
+)[0]
+
+soil_ph = get_numeric_default(
+    "Soil_pH",
+    6.5
 )
 
-col4, col5, col6 = st.columns(3)
+soil_moisture = get_numeric_default(
+    "Soil_Moisture",
+    50.0
+)
 
+organic_carbon = get_numeric_default(
+    "Organic_Carbon",
+    1.5
+)
 
-with col4:
+electrical_conductivity = get_numeric_default(
+    "Electrical_Conductivity",
+    1.0
+)
 
-    season = st.selectbox(
-        "🌤️ Season",
-        get_categories(
-            "Season",
-            [
-                "Kharif",
-                "Rabi",
-                "Summer",
-                "Winter",
-                "Monsoon"
-            ]
-        )
-    )
+sunlight_hours = get_numeric_default(
+    "Sunlight_Hours",
+    7.0
+)
 
-
-with col5:
-
-    irrigation_type = st.selectbox(
-        "💦 Irrigation Type",
-        get_categories(
-            "Irrigation_Type",
-            [
-                "Drip",
-                "Sprinkler",
-                "Flood",
-                "Rainfed"
-            ]
-        )
-    )
-
-
-with col6:
-
-    water_source = st.selectbox(
-        "🚰 Water Source",
-        get_categories(
-            "Water_Source",
-            [
-                "Canal",
-                "Groundwater",
-                "Rainwater",
-                "Reservoir"
-            ]
-        )
-    )
-
-    mulching = st.selectbox(
-        "🍃 Mulching Used",
-        get_categories(
-            "Mulching_Used",
-            [
-                "Yes",
-                "No"
-            ]
-        )
-    )
-
-
+previous_irrigation = get_numeric_default(
+    "Previous_Irrigation_mm",
+    20.0
+)
 # ============================================================
 # WEATHER BUTTON
 # ============================================================
@@ -601,12 +587,12 @@ if "weather" in st.session_state:
 st.markdown("---")
 
 st.markdown(
-    '<div class="section-title">🤖 AI Irrigation Prediction</div>',
+    '<div class="section-title">💧 Get Irrigation Advisory</div>',
     unsafe_allow_html=True
 )
 
 predict_button = st.button(
-    "🌱 ANALYZE IRRIGATION REQUIREMENT",
+    "💧 GET IRRIGATION ADVISORY",
     use_container_width=True
 )
 
@@ -701,7 +687,7 @@ if predict_button:
             # Prediction result
             # ------------------------------------------------
 
-            st.markdown("### 💧 Predicted Irrigation Requirement")
+            st.markdown("### 💧 Irrigation Requirement")
 
             if prediction.upper() == "HIGH":
               st.error(f"## {prediction.upper()}")
