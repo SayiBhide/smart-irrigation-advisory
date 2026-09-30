@@ -411,8 +411,8 @@ with col3:
 # ============================================================
 # These values are kept internally because the trained
 # XGBoost model requires these features as inputs.
-# They are not entered manually by the farmer in the
-# current farmer-friendly prototype.
+# They are derived from the project dataset and are not
+# claimed to be live field measurements.
 
 soil_type = get_categories(
     "Soil_Type",
@@ -545,7 +545,7 @@ if "weather" in st.session_state:
         <div class="weather-card">
             <h3>📍 {weather['location']}, Uttarakhand</h3>
             <p>
-            Current condition:
+             Live weather condition:
             <b>{weather['description'].title()}</b>
             </p>
         </div>
@@ -557,25 +557,25 @@ if "weather" in st.session_state:
 
     with w1:
         st.metric(
-            "🌡️ Temperature",
+            "🌡️ Live Temperature",
             f"{weather['temperature']:.1f} °C"
         )
 
     with w2:
         st.metric(
-            "💧 Humidity",
+            "💧 Live Humidity",
             f"{weather['humidity']} %"
         )
 
     with w3:
         st.metric(
-            "🌧️ Next 24h Rain",
+            "🌧️ 24-Hour Forecast Rainfall",
             f"{weather['next_24h_rainfall']:.1f} mm"
         )
 
     with w4:
         st.metric(
-            "☔ Rain Probability",
+            "☔ 24-Hour Rain Probability",
             f"{weather['rain_probability']:.0f} %"
         )
 
@@ -679,9 +679,7 @@ if predict_button:
                 "Running the trained XGBoost model..."
             ):
 
-                prediction, probabilities = (
-                    predict_irrigation(model_input)
-                )
+                prediction, _ = predict_irrigation(model_input)
 
             # ------------------------------------------------
             # Prediction result
@@ -698,48 +696,7 @@ if predict_button:
 
             st.write("")
 
-            # ------------------------------------------------
-            # Confidence
-            # ------------------------------------------------
-
-            if probabilities:
-
-                st.markdown(
-                    "### 📊 Model Prediction Confidence"
-                )
-
-                p1, p2, p3 = st.columns(3)
-
-                confidence_items = [
-                    ("Low", p1),
-                    ("Medium", p2),
-                    ("High", p3)
-                ]
-
-                for label, column in confidence_items:
-
-                    with column:
-
-                        value = probabilities.get(
-                            label,
-                            0
-                        )
-
-                        st.metric(
-                            label,
-                            f"{value:.2f}%"
-                        )
-
-                        st.progress(
-                            min(
-                                max(
-                                    int(value),
-                                    0
-                                ),
-                                100
-                            )
-                        )
-
+            
             # ------------------------------------------------
             # Advisory
             # ------------------------------------------------
@@ -758,7 +715,7 @@ if predict_button:
             # ------------------------------------------------
 
             st.markdown(
-                "### 📋 Analysis Summary"
+                "### 📋 Parameters Used for Prediction"
             )
 
             summary_col1, summary_col2 = st.columns(2)
@@ -803,7 +760,7 @@ if predict_button:
                     f"**💨 Wind Speed:** "
                     f"{weather['wind_speed'] * 3.6:.1f} km/h"
                 )
-
+                
         except Exception as error:
 
             st.error(
@@ -811,7 +768,38 @@ if predict_button:
             )
 
             st.exception(error)
+# ============================================================
+# ML MODEL EXPLANATION
+# ============================================================
 
+st.markdown("### 🤖 How the ML Model Makes the Prediction")
+
+with st.expander("View model prediction basis"):
+
+    st.write(
+        "The XGBoost model considers multiple agricultural and "
+        "environmental parameters together to classify irrigation "
+        "requirement as Low, Medium or High."
+    )
+
+    st.write(
+        "Feature-importance analysis of the trained model identified "
+        "crop growth stage, mulching status, soil moisture, wind speed, "
+        "rainfall and temperature among the important features."
+    )
+
+    st.write(
+        "These are learned feature contributions from the trained "
+        "XGBoost model and are not fixed manual weights or single "
+        "threshold values."
+    )
+
+st.info(
+    "Low, Medium and High are the three irrigation-requirement "
+    "classes learned by the trained XGBoost classifier. The model "
+    "uses a combination of agricultural and environmental features "
+    "rather than a single fixed threshold value."
+)
 
 # ============================================================
 # MODEL INFORMATION

@@ -20,7 +20,7 @@ UTTARAKHAND_LOCATIONS = {
     "Pauri": "Pauri,Uttarakhand,IN",
     "Tehri": "Tehri,Uttarakhand,IN",
     "Uttarkashi": "Uttarkashi,Uttarakhand,IN",
-    "Chamoli": "Chamoli,Uttarakhand,IN",
+    "Chamoli": "Gopeshwar,Uttarakhand,IN",
     "Rudraprayag": "Rudraprayag,Uttarakhand,IN",
     "Pithoragarh": "Pithoragarh,Uttarakhand,IN",
     "Bageshwar": "Bageshwar,Uttarakhand,IN",
@@ -42,7 +42,15 @@ def get_current_weather(api_key, location):
 
     url = "https://api.openweathermap.org/data/2.5/weather"
 
-    params = {
+    if location == "Chamoli":
+     params = {
+        "lat": 30.40878,
+        "lon": 79.31855,
+        "appid": api_key,
+        "units": "metric"
+    }
+    else:
+     params = {
         "q": UTTARAKHAND_LOCATIONS[location],
         "appid": api_key,
         "units": "metric"
@@ -99,7 +107,16 @@ def get_rainfall_forecast(api_key, location):
 
     url = "https://api.openweathermap.org/data/2.5/forecast"
 
-    params = {
+    if location == "Chamoli":
+     params = {
+        "lat": 30.40878,
+        "lon": 79.31855,
+        "appid": api_key,
+        "units": "metric",
+        "cnt": 8
+    }
+    else:
+     params = {
         "q": UTTARAKHAND_LOCATIONS[location],
         "appid": api_key,
         "units": "metric",
