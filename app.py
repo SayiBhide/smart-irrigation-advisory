@@ -1,22 +1,25 @@
 # ============================================================
 # AI-ASSISTED SMART IRRIGATION ADVISORY SYSTEM
-# For Multiple crops - Uttarakhand
-#
-# FINAL STREAMLIT DASHBOARD
+# Multi-Crop - Uttarakhand
+# FINAL MULTILINGUAL STREAMLIT DASHBOARD
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 from pathlib import Path
 
-from weather_api import (
-    get_weather_data,
-    UTTARAKHAND_LOCATIONS
-)
+from weather_api import get_weather_data, UTTARAKHAND_LOCATIONS
+from irrigation_predictor import predict_irrigation
 
-from irrigation_predictor import (
-    predict_irrigation,
-    generate_advisory
+from translations import (
+    LANGUAGES,
+    CROP_VALUES,
+    STAGE_VALUES,
+    tr,
+    display_crop,
+    display_stage,
+    display_weather_condition,
+    localized_advisory
 )
 
 
@@ -33,17 +36,31 @@ st.set_page_config(
 
 
 # ============================================================
+# LANGUAGE SELECTION
+# ============================================================
+
+if "language" not in st.session_state:
+    st.session_state["language"] = "English"
+
+language = st.selectbox(
+    "🌐 " + tr(st.session_state["language"], "language"),
+    LANGUAGES,
+    index=LANGUAGES.index(st.session_state["language"]),
+    key="language_selector"
+)
+
+st.session_state["language"] = language
+
+
+# ============================================================
 # CUSTOM CSS
 # ============================================================
 
 st.markdown(
     """
     <style>
-
-    /* Main background */
     .stApp {
-        background:
-        linear-gradient(
+        background: linear-gradient(
             135deg,
             #f3fff5 0%,
             #eefcf7 45%,
@@ -51,7 +68,6 @@ st.markdown(
         );
     }
 
-    /* Main title */
     .main-title {
         font-size: 42px;
         font-weight: 800;
@@ -67,7 +83,6 @@ st.markdown(
         margin-bottom: 25px;
     }
 
-    /* Section heading */
     .section-title {
         font-size: 25px;
         font-weight: 750;
@@ -76,7 +91,6 @@ st.markdown(
         margin-bottom: 10px;
     }
 
-    /* Cards */
     .info-card {
         background: white;
         padding: 20px;
@@ -87,52 +101,11 @@ st.markdown(
     }
 
     .weather-card {
-        background: linear-gradient(
-            135deg,
-            #e0f2fe,
-            #f0f9ff
-        );
+        background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
         padding: 20px;
         border-radius: 18px;
         border-left: 6px solid #0ea5e9;
         box-shadow: 0px 5px 18px rgba(0,0,0,0.08);
-    }
-
-    .prediction-card {
-        background: linear-gradient(
-            135deg,
-            #dcfce7,
-            #f0fdf4
-        );
-        padding: 30px;
-        border-radius: 22px;
-        border-left: 8px solid #16a34a;
-        text-align: center;
-        box-shadow: 0px 8px 25px rgba(0,0,0,0.10);
-    }
-
-    .prediction-label {
-        font-size: 18px;
-        color: #166534;
-        font-weight: 600;
-    }
-
-    .prediction-value {
-        font-size: 48px;
-        font-weight: 850;
-        color: #15803d;
-    }
-
-    .advisory-card {
-        background: linear-gradient(
-            135deg,
-            #fff7ed,
-            #fffbeb
-        );
-        padding: 25px;
-        border-radius: 18px;
-        border-left: 7px solid #f59e0b;
-        box-shadow: 0px 6px 20px rgba(0,0,0,0.08);
     }
 
     .footer {
@@ -142,10 +115,8 @@ st.markdown(
         font-size: 14px;
     }
 
-    /* Sidebar */
     section[data-testid="stSidebar"] {
-        background:
-        linear-gradient(
+        background: linear-gradient(
             180deg,
             #14532d,
             #166534,
@@ -157,7 +128,6 @@ st.markdown(
         color: white !important;
     }
 
-    /* Buttons */
     .stButton > button {
         width: 100%;
         border-radius: 12px;
@@ -165,66 +135,58 @@ st.markdown(
         padding: 12px;
     }
 
-/* Normal text inputs */
-[data-testid="stSidebar"] input:not([type="password"]) {
-    color: #1b4332 !important;
-    -webkit-text-fill-color: #1b4332 !important;
-    background-color: white !important;
-}
+    [data-testid="stSidebar"] input:not([type="password"]) {
+        color: #1b4332 !important;
+        -webkit-text-fill-color: #1b4332 !important;
+        background-color: white !important;
+    }
 
-/* API key password box */
-[data-testid="stSidebar"] input[type="password"] {
-    color: #1b4332 !important;
-    -webkit-text-fill-color: #1b4332 !important;
-    background-color: white !important;
-}
+    [data-testid="stSidebar"] input[type="password"] {
+        color: #1b4332 !important;
+        -webkit-text-fill-color: #1b4332 !important;
+        background-color: white !important;
+    }
 
-/* Dropdown text */
-[data-testid="stSidebar"] [data-baseweb="select"] {
-    color: #1b4332 !important;
-}
+    [data-testid="stSidebar"] [data-baseweb="select"] {
+        color: #1b4332 !important;
+    }
 
-[data-testid="stSidebar"] [data-baseweb="select"] * {
-    color: #1b4332 !important;
-}
-/* ============================================================
-   MOBILE / FARMER-FRIENDLY DESIGN
-   ============================================================ */
-
-.block-container {
-    padding-left: 5%;
-    padding-right: 5%;
-    padding-top: 1.5rem;
-}
-
-@media (max-width: 768px) {
+    [data-testid="stSidebar"] [data-baseweb="select"] * {
+        color: #1b4332 !important;
+    }
 
     .block-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-        padding-top: 1rem;
+        padding-left: 5%;
+        padding-right: 5%;
+        padding-top: 1.5rem;
     }
 
-    h1 {
-        font-size: 1.8rem !important;
-    }
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1rem;
+        }
 
-    h2 {
-        font-size: 1.4rem !important;
-    }
+        h1 {
+            font-size: 1.8rem !important;
+        }
 
-    h3 {
-        font-size: 1.15rem !important;
-    }
+        h2 {
+            font-size: 1.4rem !important;
+        }
 
-    .stButton button {
-        width: 100%;
-        min-height: 3rem;
-        font-size: 1rem;
+        h3 {
+            font-size: 1.15rem !important;
+        }
+
+        .stButton button {
+            width: 100%;
+            min-height: 3rem;
+            font-size: 1rem;
+        }
     }
-}
-</style>
-    
+    </style>
     """,
     unsafe_allow_html=True
 )
@@ -235,38 +197,33 @@ st.markdown(
 # ============================================================
 
 st.markdown(
-    '<div class="main-title">🌱 AI-Assisted Smart Irrigation Advisory System</div>',
+    f'<div class="main-title">{tr(language, "project_title")}</div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
-    '<div class="subtitle">'
-    'Multi-Crop Irrigation Advisory using Machine Learning & Weather Forecasting'
-    '</div>',
+    f'<div class="subtitle">{tr(language, "subtitle")}</div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
-    """
+    f"""
     <div class="info-card">
-        <b>🌾 Project Objective:</b>
-        Provide an intelligent irrigation recommendation by combining
-        agricultural parameters with current and forecast weather
-        information for locations in Uttarakhand.
+        <b>{tr(language, "objective")}</b>
     </div>
     """,
     unsafe_allow_html=True
 )
-st.info(
-    "🌾 Select your location, crop, growth stage and field area, then get your AI-based irrigation advisory."
-)
+
+st.info(tr(language, "intro"))
+
 
 # ============================================================
 # SIDEBAR
 # ============================================================
 
 st.sidebar.markdown(
-    "## 🌦️ Weather Configuration"
+    "## " + tr(language, "weather_config")
 )
 
 try:
@@ -275,41 +232,40 @@ except Exception:
     api_key = ""
 
 if not api_key:
-    st.sidebar.error("Weather service is not configured.")
+    st.sidebar.error(tr(language, "api_missing"))
 
 st.sidebar.markdown("---")
 
 st.sidebar.markdown(
-    "### 📍 Uttarakhand Location"
+    "### " + tr(language, "location")
 )
 
 location = st.sidebar.selectbox(
-    "Select location",
+    tr(language, "select_location"),
     list(UTTARAKHAND_LOCATIONS.keys())
 )
 
 st.sidebar.info(
-    "Weather data is restricted to selected locations "
-    "within Uttarakhand."
+    tr(language, "location_info")
 )
+
+# Clear old weather when the selected location changes.
+if st.session_state.get("weather_location") != location:
+    st.session_state.pop("weather", None)
 
 
 # ============================================================
-# LOAD DATASET FOR INPUT OPTIONS
+# LOAD DATASET FOR INTERNAL DEFAULTS
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-
-# Find Excel file automatically
 excel_files = list(BASE_DIR.glob("*.xlsx"))
 
 dataset = None
 
 if len(excel_files) > 0:
-
     try:
         dataset = pd.read_excel(excel_files[0])
-
     except Exception:
         dataset = None
 
@@ -319,9 +275,7 @@ if len(excel_files) > 0:
 # ============================================================
 
 def get_categories(column, fallback):
-
     if dataset is not None and column in dataset.columns:
-
         values = (
             dataset[column]
             .dropna()
@@ -337,9 +291,7 @@ def get_categories(column, fallback):
 
 
 def get_numeric_default(column, fallback):
-
     if dataset is not None and column in dataset.columns:
-
         try:
             return float(dataset[column].median())
         except Exception:
@@ -347,56 +299,55 @@ def get_numeric_default(column, fallback):
 
     return fallback
 
+
 # ============================================================
 # FARMER-FRIENDLY AGRICULTURAL INPUTS
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">🌾 Farm Information</div>',
+    f'<div class="section-title">{tr(language, "farm_info")}</div>',
     unsafe_allow_html=True
 )
 
 col1, col2, col3 = st.columns(3)
 
-
 with col1:
+    # Display localized crop names, but keep the original
+    # English dataset value for the trained model.
+    crop_display_options = [
+        display_crop(language, value) for value in CROP_VALUES
+    ]
 
-    crop_type = st.selectbox(
-        "🌱 Crop Type",
-        get_categories(
-            "Crop_Type",
-            [
-                "Rice",
-                "Maize",
-                "Sugarcane",
-                "Potato",
-                "Wheat",
-                "Cotton"
-            ]
-        )
+    selected_crop_display = st.selectbox(
+        tr(language, "crop_type"),
+        crop_display_options
     )
+
+    crop_type = CROP_VALUES[crop_display_options.index(
+        selected_crop_display
+    )]
 
 
 with col2:
+    # Display localized growth-stage names, but keep the
+    # original English dataset value internally.
+    stage_display_options = [
+        display_stage(language, value) for value in STAGE_VALUES
+    ]
 
-    crop_growth_stage = st.selectbox(
-        "🌿 Crop Growth Stage",
-        get_categories(
-            "Crop_Growth_Stage",
-            [
-                "Sowing",
-                "Vegetative",
-                "Flowering",
-                "Harvest"
-            ]
-        )
+    selected_stage_display = st.selectbox(
+        tr(language, "growth_stage"),
+        stage_display_options
     )
+
+    crop_growth_stage = STAGE_VALUES[stage_display_options.index(
+        selected_stage_display
+    )]
 
 
 with col3:
-
     field_area = st.number_input(
-        "📐 Field Area (hectare)",
+        tr(language, "field_area"),
         value=get_numeric_default(
             "Field_Area_hectare",
             1.0
@@ -426,33 +377,17 @@ region = get_categories(
 
 season = get_categories(
     "Season",
-    [
-        "Kharif",
-        "Rabi",
-        "Summer",
-        "Winter",
-        "Monsoon"
-    ]
+    ["Kharif", "Rabi", "Summer", "Winter", "Monsoon"]
 )[0]
 
 irrigation_type = get_categories(
     "Irrigation_Type",
-    [
-        "Drip",
-        "Sprinkler",
-        "Flood",
-        "Rainfed"
-    ]
+    ["Drip", "Sprinkler", "Flood", "Rainfed"]
 )[0]
 
 water_source = get_categories(
     "Water_Source",
-    [
-        "Canal",
-        "Groundwater",
-        "Rainwater",
-        "Reservoir"
-    ]
+    ["Canal", "Groundwater", "Rainwater", "Reservoir"]
 )[0]
 
 mulching = get_categories(
@@ -489,31 +424,30 @@ previous_irrigation = get_numeric_default(
     "Previous_Irrigation_mm",
     20.0
 )
+
+
 # ============================================================
 # WEATHER BUTTON
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">🌦️ Live Weather Information</div>',
+    f'<div class="section-title">{tr(language, "weather_section")}</div>',
     unsafe_allow_html=True
 )
 
 if not api_key:
 
-    st.warning(
-        "🔑 Enter your OpenWeather API key in the sidebar "
-        "to retrieve live weather information."
-    )
+    st.warning(tr(language, "api_missing"))
 
 else:
 
     if st.button(
-        "🌦️ Get Live Uttarakhand Weather",
+        tr(language, "get_weather"),
         use_container_width=True
     ):
 
         with st.spinner(
-            f"Fetching weather data for {location}..."
+            tr(language, "fetching", location=location)
         ):
 
             try:
@@ -524,11 +458,12 @@ else:
                 )
 
                 st.session_state["weather"] = weather
+                st.session_state["weather_location"] = location
 
             except Exception as error:
 
                 st.error(
-                    f"Unable to retrieve weather data: {error}"
+                    tr(language, "weather_error", error=error)
                 )
 
 
@@ -540,13 +475,19 @@ if "weather" in st.session_state:
 
     weather = st.session_state["weather"]
 
+    translated_condition = display_weather_condition(
+        language,
+        weather.get("weather_main", ""),
+        weather["description"].title()
+    )
+
     st.markdown(
         f"""
         <div class="weather-card">
             <h3>📍 {weather['location']}, Uttarakhand</h3>
             <p>
-             Live weather condition:
-            <b>{weather['description'].title()}</b>
+                {tr(language, "live_condition")}:
+                <b>{translated_condition}</b>
             </p>
         </div>
         """,
@@ -557,25 +498,25 @@ if "weather" in st.session_state:
 
     with w1:
         st.metric(
-            "🌡️ Live Temperature",
+            tr(language, "live_temperature"),
             f"{weather['temperature']:.1f} °C"
         )
 
     with w2:
         st.metric(
-            "💧 Live Humidity",
+            tr(language, "live_humidity"),
             f"{weather['humidity']} %"
         )
 
     with w3:
         st.metric(
-            "🌧️ 24-Hour Forecast Rainfall",
+            tr(language, "forecast_rainfall"),
             f"{weather['next_24h_rainfall']:.1f} mm"
         )
 
     with w4:
         st.metric(
-            "☔ 24-Hour Rain Probability",
+            tr(language, "rain_probability"),
             f"{weather['rain_probability']:.0f} %"
         )
 
@@ -587,35 +528,33 @@ if "weather" in st.session_state:
 st.markdown("---")
 
 st.markdown(
-    '<div class="section-title">💧 Get Irrigation Advisory</div>',
+    f'<div class="section-title">{tr(language, "prediction_section")}</div>',
     unsafe_allow_html=True
 )
 
 predict_button = st.button(
-    "💧 GET IRRIGATION ADVISORY",
+    tr(language, "get_advisory"),
     use_container_width=True
 )
 
 
 if predict_button:
 
-    # Weather must be available
     if "weather" not in st.session_state:
 
-        st.error(
-            "Please fetch the Uttarakhand weather data first."
-        )
+        st.error(tr(language, "fetch_first"))
 
     else:
 
         weather = st.session_state["weather"]
 
         # ----------------------------------------------------
-        # Model input
-        # IMPORTANT:
-        # State is NOT included because the trained model
-        # was built using the model features from training.
+        # MODEL INPUT
         # ----------------------------------------------------
+        # Farmer-facing inputs remain simple.
+        # The remaining technical features are filled internally
+        # using dataset-derived defaults.
+        # Weather features come from OpenWeather.
 
         model_input = {
 
@@ -627,95 +566,101 @@ if predict_button:
 
             "Organic_Carbon": organic_carbon,
 
-            "Electrical_Conductivity":
-                electrical_conductivity,
+            "Electrical_Conductivity": electrical_conductivity,
 
-            "Temperature_C":
-                weather["temperature"],
+            "Temperature_C": weather["temperature"],
 
-            "Humidity":
-                weather["humidity"],
+            "Humidity": weather["humidity"],
 
-            "Rainfall_mm":
-                weather["next_24h_rainfall"],
+            "Rainfall_mm": weather["next_24h_rainfall"],
 
-            "Sunlight_Hours":
-                sunlight_hours,
+            "Sunlight_Hours": sunlight_hours,
 
-            "Wind_Speed_kmh":
-                weather["wind_speed"] * 3.6,
+            "Wind_Speed_kmh": weather["wind_speed"] * 3.6,
 
-            "Crop_Type":
-                crop_type,
+            "Crop_Type": crop_type,
 
-            "Crop_Growth_Stage":
-                crop_growth_stage,
+            "Crop_Growth_Stage": crop_growth_stage,
 
-            "Season":
-                season,
+            "Season": season,
 
-            "Irrigation_Type":
-                irrigation_type,
+            "Irrigation_Type": irrigation_type,
 
-            "Water_Source":
-                water_source,
+            "Water_Source": water_source,
 
-            "Field_Area_hectare":
-                field_area,
+            "Field_Area_hectare": field_area,
 
-            "Mulching_Used":
-                mulching,
+            "Mulching_Used": mulching,
 
-            "Previous_Irrigation_mm":
-                previous_irrigation,
+            "Previous_Irrigation_mm": previous_irrigation,
 
-            "Region":
-                region
+            "Region": region
         }
 
         try:
 
             with st.spinner(
-                "Running the trained XGBoost model..."
+                tr(language, "running_model")
             ):
 
-                prediction, _ = predict_irrigation(model_input)
+                prediction, _ = predict_irrigation(
+                    model_input
+                )
+
 
             # ------------------------------------------------
-            # Prediction result
+            # PREDICTION RESULT
             # ------------------------------------------------
 
-            st.markdown("### 💧 Irrigation Requirement")
+            st.markdown(
+                f"### {tr(language, 'prediction')}"
+            )
 
-            if prediction.upper() == "HIGH":
-              st.error(f"## {prediction.upper()}")
-            elif prediction.upper() == "MEDIUM":
-              st.warning(f"## {prediction.upper()}")
+            prediction_upper = prediction.upper()
+
+            if prediction_upper == "HIGH":
+
+                st.error(
+                    f"## {tr(language, 'high')}"
+                )
+
+            elif prediction_upper == "MEDIUM":
+
+                st.warning(
+                    f"## {tr(language, 'medium')}"
+                )
+
             else:
-              st.success(f"## {prediction.upper()}")
 
-            st.write("")
+                st.success(
+                    f"## {tr(language, 'low')}"
+                )
 
-            
+
             # ------------------------------------------------
-            # Advisory
+            # LOCALIZED ADVISORY
             # ------------------------------------------------
 
-            advisory = generate_advisory(
+            advisory = localized_advisory(
+                language,
                 prediction,
                 weather["next_24h_rainfall"],
                 weather["rain_probability"]
             )
 
-            st.markdown("### 💡 Irrigation Advisory")
+            st.markdown(
+                tr(language, "advisory")
+            )
+
             st.info(advisory)
 
+
             # ------------------------------------------------
-            # Input summary
+            # PARAMETERS USED FOR PREDICTION
             # ------------------------------------------------
 
             st.markdown(
-                "### 📋 Parameters Used for Prediction"
+                tr(language, "parameters")
             )
 
             summary_col1, summary_col2 = st.columns(2)
@@ -723,83 +668,85 @@ if predict_button:
             with summary_col1:
 
                 st.write(
-                    f"**📍 Location:** {location}, Uttarakhand"
+                    f"**{tr(language, 'location_label')}:** "
+                    f"{location}, Uttarakhand"
                 )
 
                 st.write(
-                    f"**🌱 Crop:** {crop_type}"
+                    f"**{tr(language, 'crop_label')}:** "
+                    f"{display_crop(language, crop_type)}"
                 )
 
                 st.write(
-                    f"**🌿 Growth Stage:** {crop_growth_stage}"
+                    f"**{tr(language, 'growth_label')}:** "
+                    f"{display_stage(language, crop_growth_stage)}"
                 )
 
                 st.write(
-                    f"**💧 Soil Moisture:** "
+                    f"**{tr(language, 'soil_moisture')}:** "
                     f"{soil_moisture:.2f}"
                 )
 
             with summary_col2:
 
                 st.write(
-                    f"**🌡️ Temperature:** "
+                    f"**{tr(language, 'temperature')}:** "
                     f"{weather['temperature']:.1f} °C"
                 )
 
                 st.write(
-                    f"**💦 Humidity:** "
+                    f"**{tr(language, 'humidity')}:** "
                     f"{weather['humidity']}%"
                 )
 
                 st.write(
-                    f"**🌧️ Forecast Rainfall:** "
+                    f"**{tr(language, 'forecast')}:** "
                     f"{weather['next_24h_rainfall']:.1f} mm"
                 )
 
                 st.write(
-                    f"**💨 Wind Speed:** "
+                    f"**{tr(language, 'wind')}:** "
                     f"{weather['wind_speed'] * 3.6:.1f} km/h"
                 )
-                
+
         except Exception as error:
 
             st.error(
-                "Prediction could not be generated."
+                tr(language, "prediction_error")
             )
 
             st.exception(error)
+
+
 # ============================================================
 # ML MODEL EXPLANATION
 # ============================================================
 
-st.markdown("### 🤖 How the ML Model Makes the Prediction")
+st.markdown(
+    tr(language, "model_basis")
+)
 
-with st.expander("View model prediction basis"):
+with st.expander(
+    tr(language, "view_basis")
+):
 
     st.write(
-        "The XGBoost model considers multiple agricultural and "
-        "environmental parameters together to classify irrigation "
-        "requirement as Low, Medium or High."
+        tr(language, "basis1")
     )
 
     st.write(
-        "Feature-importance analysis of the trained model identified "
-        "crop growth stage, mulching status, soil moisture, wind speed, "
-        "rainfall and temperature among the important features."
+        tr(language, "basis2")
     )
 
     st.write(
-        "These are learned feature contributions from the trained "
-        "XGBoost model and are not fixed manual weights or single "
-        "threshold values."
+        tr(language, "basis3")
     )
+
 
 st.info(
-    "Low, Medium and High are the three irrigation-requirement "
-    "classes learned by the trained XGBoost classifier. The model "
-    "uses a combination of agricultural and environmental features "
-    "rather than a single fixed threshold value."
+    tr(language, "class_info")
 )
+
 
 # ============================================================
 # MODEL INFORMATION
@@ -808,7 +755,7 @@ st.info(
 st.markdown("---")
 
 st.markdown(
-    '<div class="section-title">🤖 Machine Learning Model</div>',
+    f'<div class="section-title">{tr(language, "model_info")}</div>',
     unsafe_allow_html=True
 )
 
@@ -816,32 +763,30 @@ m1, m2, m3, m4 = st.columns(4)
 
 with m1:
     st.metric(
-        "Selected Model",
+        tr(language, "selected_model"),
         "XGBoost"
     )
 
 with m2:
     st.metric(
-        "Test Accuracy",
+        tr(language, "accuracy"),
         "99.65%"
     )
 
 with m3:
     st.metric(
-        "F1 Score",
+        tr(language, "f1"),
         "99.65%"
     )
 
 with m4:
     st.metric(
-        "R² Score",
+        tr(language, "r2"),
         "98.89%"
     )
 
 st.info(
-    "The XGBoost model was selected after comparing "
-    "Random Forest, Decision Tree, XGBoost and SVM "
-    "on the project dataset."
+    tr(language, "model_compare")
 )
 
 
@@ -850,18 +795,9 @@ st.info(
 # ============================================================
 
 st.markdown(
-    """
+    f"""
     <div class="footer">
-
-    🌱 <b>AI-Assisted Smart Irrigation Advisory System</b><br>
-
-    Multi-Crop • Uttarakhand • Machine Learning • Weather Forecasting
-
-    <br><br>
-
-    This system provides an ML-based irrigation advisory
-    using agricultural inputs and weather information.
-
+        {tr(language, "footer")}
     </div>
     """,
     unsafe_allow_html=True

@@ -1,3 +1,4 @@
+
 # ============================================================
 # WEATHER API MODULE
 # Smart Irrigation Advisory System
@@ -5,12 +6,6 @@
 # ============================================================
 
 import requests
-
-
-# ------------------------------------------------------------
-# Uttarakhand locations
-# These are the locations available for weather selection.
-# ------------------------------------------------------------
 
 UTTARAKHAND_LOCATIONS = {
     "Dehradun": "Dehradun,Uttarakhand,IN",
@@ -28,13 +23,7 @@ UTTARAKHAND_LOCATIONS = {
     "Rudrapur": "Rudrapur,Uttarakhand,IN"
 }
 
-
-# ------------------------------------------------------------
-# Get current weather
-# ------------------------------------------------------------
-
 def get_current_weather(api_key, location):
-
     if location not in UTTARAKHAND_LOCATIONS:
         raise ValueError(
             "Invalid location. Please select a location from Uttarakhand."
@@ -43,24 +32,27 @@ def get_current_weather(api_key, location):
     url = "https://api.openweathermap.org/data/2.5/weather"
 
     if location == "Chamoli":
-     params = {
-        "lat": 30.40878,
-        "lon": 79.31855,
-        "appid": api_key,
-        "units": "metric"
-    }
+        params = {
+            "lat": 30.40878,
+            "lon": 79.31855,
+            "appid": api_key,
+            "units": "metric"
+        }
     else:
-     params = {
-        "q": UTTARAKHAND_LOCATIONS[location],
-        "appid": api_key,
-        "units": "metric"
-    }
+        params = {
+            "q": UTTARAKHAND_LOCATIONS[location],
+            "appid": api_key,
+            "units": "metric"
+        }
 
     response = requests.get(url, params=params, timeout=15)
 
     if response.status_code != 200:
         try:
-            error_message = response.json().get("message", "Unknown API error")
+            error_message = response.json().get(
+                "message",
+                "Unknown API error"
+            )
         except Exception:
             error_message = "Unable to connect to weather service."
 
@@ -79,7 +71,6 @@ def get_current_weather(api_key, location):
         "weather_main": data["weather"][0]["main"]
     }
 
-    # Current rainfall, if available
     if "rain" in data:
         weather["current_rainfall"] = (
             data["rain"].get("1h", 0)
@@ -92,14 +83,7 @@ def get_current_weather(api_key, location):
     return weather
 
 
-# ------------------------------------------------------------
-# Get next 24-hour rainfall forecast
-# OpenWeather forecast gives 3-hour intervals.
-# 8 intervals ≈ next 24 hours.
-# ------------------------------------------------------------
-
 def get_rainfall_forecast(api_key, location):
-
     if location not in UTTARAKHAND_LOCATIONS:
         raise ValueError(
             "Invalid location. Please select a location from Uttarakhand."
@@ -108,26 +92,29 @@ def get_rainfall_forecast(api_key, location):
     url = "https://api.openweathermap.org/data/2.5/forecast"
 
     if location == "Chamoli":
-     params = {
-        "lat": 30.40878,
-        "lon": 79.31855,
-        "appid": api_key,
-        "units": "metric",
-        "cnt": 8
-    }
+        params = {
+            "lat": 30.40878,
+            "lon": 79.31855,
+            "appid": api_key,
+            "units": "metric",
+            "cnt": 8
+        }
     else:
-     params = {
-        "q": UTTARAKHAND_LOCATIONS[location],
-        "appid": api_key,
-        "units": "metric",
-        "cnt": 8
-    }
+        params = {
+            "q": UTTARAKHAND_LOCATIONS[location],
+            "appid": api_key,
+            "units": "metric",
+            "cnt": 8
+        }
 
     response = requests.get(url, params=params, timeout=15)
 
     if response.status_code != 200:
         try:
-            error_message = response.json().get("message", "Unknown API error")
+            error_message = response.json().get(
+                "message",
+                "Unknown API error"
+            )
         except Exception:
             error_message = "Unable to connect to weather service."
 
@@ -142,13 +129,11 @@ def get_rainfall_forecast(api_key, location):
 
     for item in data.get("list", []):
 
-        # Rainfall during that 3-hour period
         rain_data = item.get("rain", {})
 
         if isinstance(rain_data, dict):
             total_rainfall += rain_data.get("3h", 0.0)
 
-        # Probability of precipitation
         probability = item.get("pop", 0.0)
 
         if probability > maximum_rain_probability:
@@ -156,19 +141,23 @@ def get_rainfall_forecast(api_key, location):
 
     return {
         "next_24h_rainfall": round(total_rainfall, 2),
-        "rain_probability": round(maximum_rain_probability * 100, 1)
+        "rain_probability": round(
+            maximum_rain_probability * 100,
+            1
+        )
     }
 
 
-# ------------------------------------------------------------
-# Get complete weather information
-# ------------------------------------------------------------
-
 def get_weather_data(api_key, location):
+    current = get_current_weather(
+        api_key,
+        location
+    )
 
-    current = get_current_weather(api_key, location)
-
-    forecast = get_rainfall_forecast(api_key, location)
+    forecast = get_rainfall_forecast(
+        api_key,
+        location
+    )
 
     weather_data = {
         "location": location,
